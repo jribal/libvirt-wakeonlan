@@ -22,6 +22,7 @@ exit $?
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#    dmacias - added fixes for ether proto 0x0842
 import pcap
 import sys
 import socket
@@ -61,7 +62,8 @@ class LibVirtWakeOnLan:
 
     @staticmethod
     def GetMACAddress(s):
-        if len(s) == 110:
+            # added fix for ether proto 0x0842
+            size = len(s)
             bytes = map(lambda x: '%.2x' % x, map(ord, s))
             counted = 0
             macpart = 0
@@ -71,8 +73,8 @@ class LibVirtWakeOnLan:
 
             for byte in bytes:
                 if counted < 6:
-                    # find 6 repetitions of 255
-                    if byte == "ff":
+                    # find 6 repetitions of 255 and added fix for ether proto 0x0842
+                    if byte == "ff" or size < 110:
                         counted += 1
                 else:
                     # find 16 repititions of 48 bit mac
@@ -86,13 +88,13 @@ class LibVirtWakeOnLan:
                         macaddress = newmac
 
                     if macpart is 6:
-                        if macaddress != newmac:
-                            return None
+                        #if macaddress != newmac:
+                            #return None
                         newmac = ""
                         macpart = 0
                         maccounted += 1
 
-            if counted == 6 and maccounted == 16:
+            if counted > 5 and maccounted > 5:
                 return macaddress
 
     @staticmethod
@@ -144,8 +146,10 @@ if __name__ == '__main__':
     interface = sys.argv[1]
     p = pcap.pcapObject()
     net, mask = pcap.lookupnet(interface)
-    p.open_live(interface, 1600, 0, 100)
-    p.setfilter('udp and port 7 or port 9', 0, 0)
+    # set promiscuous to 1 so all packets are captured
+    p.open_live(interface, 1600, 1, 100)
+    # added support for ether proto 0x0842
+    p.setfilter('udp port 7 or udp port 9 or ether proto 0x0842', 0, 0)
 
     try:
         while 1:
