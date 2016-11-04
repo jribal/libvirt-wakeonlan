@@ -151,8 +151,10 @@ if __name__ == '__main__':
     # added support for ether proto 0x0842
     p.setfilter('udp port 7 or udp port 9 or ether proto 0x0842', 0, 0)
 
-    try:
-        while 1:
+    while True:
+        try:
             p.dispatch(1, LibVirtWakeOnLan.InspectIPPacket)
-    except KeyboardInterrupt:
-        pass
+        except KeyboardInterrupt:
+            break
+        except Exception:
+            continue
