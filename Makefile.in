@@ -29,6 +29,7 @@ install: all
                   find $(DESTDIR) -type d; \
                   ${INSTALL} ${srcdir}/init/debian/init/libvirt-wakeonlan.conf $(DESTDIR)/etc/init/libvirt-wakeonlan.conf; \
                   ${INSTALL} ${srcdir}/init/debian/default/libvirt-wakeonlan $(DESTDIR)/etc/default/libvirt-wakeonlan; \
+                  ${INSTALL} ${srcdir}/init/debian/systemd/libvirt-wakeonlan.service $(DESTDIR)/etc/systemd/system/libvirt-wakeonlan.service; \
         fi
 
         # arch

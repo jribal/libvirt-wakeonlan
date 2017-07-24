@@ -1,0 +1,11 @@
+[Unit]
+Description=libvirt-wakeonlan
+After=libvirtd.service
+
+[Service]
+EnvironmentFile=/etc/default/libvirt-wakeonlan
+ExecStart=/usr/share/libvirt-wakeonlan/libvirtwol.py ${LIBVIRTDWOL_INTERFACE}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
