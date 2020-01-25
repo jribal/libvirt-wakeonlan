@@ -16,6 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    dmacias - added fixes for ether proto 0x0842
 import argparse
+import binascii
 import pcap
 import sys
 import socket
@@ -75,9 +76,35 @@ class LibVirtWakeOnLan:
         return None
 
     @staticmethod
+    def DecodeIPPacket(s):
+        if len(s) < 20:
+            return None
+        d = {}
+        d['version'] = ((s[0]) & 0xf0) >> 4
+        d['header_len'] = (s[0]) & 0x0f
+        d['tos'] = (s[1])
+        d['total_len'] = socket.ntohs(struct.unpack('H', s[2:4])[0])
+        d['id'] = socket.ntohs(struct.unpack('H', s[4:6])[0])
+        d['flags'] = ((s[6]) & 0xe0) >> 5
+        d['fragment_offset'] = socket.ntohs(struct.unpack('H', s[6:8])[0] & 0x1f)
+        d['ttl'] = (s[8])
+        d['protocol'] = (s[9])
+        d['checksum'] = socket.ntohs(struct.unpack('H', s[10:12])[0])
+        d['source_address'] = socket.inet_ntoa(s[12:16])
+        d['destination_address'] = socket.inet_ntoa(s[16:20])
+        if d['header_len'] > 5:
+            d['options'] = s[20:4 * (d['header_len'] - 5)]
+        else:
+            d['options'] = None
+        d['data'] = s[4 * d['header_len']:]
+        return d
+
+    @staticmethod
     def GetMACAddress(bytes):
-        # added fix for ether proto 0x0842
         size = len(bytes)
+        # added fix for ether proto 0x0842
+        logging.debug('Received %d bytes:', size)
+        logging.debug(binascii.hexlify(bytes))
         counted = 0
         macpart = 0
         maccounted = 0
@@ -111,11 +138,12 @@ class LibVirtWakeOnLan:
                 return macaddress
 
     @staticmethod
-    def InspectIPPacket(timestamp, data, *args):
-        macaddress = LibVirtWakeOnLan.GetMACAddress(data)
+    def InspectIPPacket(timestamp, bytes, *args):
+        decoded = LibVirtWakeOnLan.DecodeIPPacket(bytes)
+        macaddress = LibVirtWakeOnLan.GetMACAddress(decoded['data'])
         if not macaddress:
             logging.debug('Unable to parse MAC address:')
-            logging.debug(data)
+            logging.debug(binascii.hexlify(bytes))
             return
 
         logging.debug('Parsing MAC address %s', macaddress)
