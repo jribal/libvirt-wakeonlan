@@ -146,7 +146,7 @@ class LibVirtWakeOnLan:
             logging.debug(binascii.hexlify(bytes))
             return
 
-        logging.debug('Parsing MAC address %s', macaddress)
+        logging.info('Received WoL request for MAC address %s', macaddress)
         conn = libvirt.open(None)
         if conn is None:
             logging.error('Failed to open connection to the hypervisor')
@@ -166,10 +166,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Monitor ethernet traffic on a given interface for WoL packets bound for local VMs.')
     parser.add_argument('interface', help='The interface on which to listen for WoL packets')
-    parser.add_argument('--log-console', dest='logconsole', help='Disable logging to file, log to console instead', action='store_true')
+    parser.add_argument('--log-console', dest='logconsole', help='Log to console', action='store_true')
     parser.add_argument('--log-file', dest='logfile', help='Path to which to log', default=None)
     parser.add_argument('--version', action='version', version=LVWOLVersion)
-    parser.add_argument('--verbose', '-v', action='count', default=0)
+    parser.add_argument('--verbose', '-v', action='count', help='Enable debug logging', default=0)
     args = parser.parse_args()
 
     Utils.SetupLogging(args.logfile, args.logconsole, args.verbose)

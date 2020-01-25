@@ -18,7 +18,6 @@ import logging
 import sys
 
 class Utils(object):
-    logpath = '/var/log/libvirt/libvirtwakeonlan.log'
 
     @staticmethod
     def SetupLogging(logpath=None, logconsole=False, verbose=0):
@@ -32,7 +31,7 @@ class Utils(object):
 
         logging.basicConfig(
             level=logging.DEBUG if verbose > 0 else logging.INFO, 
-            format='[%(asctime)s] %(levelname)s - %(message)s',
+            format='%(levelname)s: %(message)s',
             handlers=handlers
         )
 
