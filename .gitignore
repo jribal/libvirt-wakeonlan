@@ -6,3 +6,5 @@ config.log
 config.status
 .DS_Store
 .*swp
+venv
+

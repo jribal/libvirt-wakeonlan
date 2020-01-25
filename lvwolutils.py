@@ -17,35 +17,24 @@
 import logging
 import sys
 
-
 class Utils(object):
     logpath = '/var/log/libvirt/libvirtwakeonlan.log'
 
     @staticmethod
-    def SetupLogging(logpath=None):
+    def SetupLogging(logpath=None, logconsole=False, verbose=0):
         returnValue = True
-        logformat = "%(asctime)s|%(levelname)s|%(message)s"
-        dateformat = "%Y-%m-%d %H:%M:%S"
-        if logpath is None:
-            logpath = Utils.logpath
-        try:
-            logging.basicConfig(
-                filename=logpath,
-                level=logging.INFO,
-                format=logformat,
-                datefmt=dateformat)
-        except Exception:
-            logging.basicConfig(
-                level=logging.INFO,
-                format=logformat,
-                datefmt=dateformat)
-            logging.error("Unable to write to log file " + logpath)
-            returnValue = False
+        handlers = []
+
+        if logpath is not None:
+            handlers.append(logging.FileHandler(filename=logpath))
+        if logconsole:
+            handlers.append(logging.StreamHandler(sys.stdout))
+
+        logging.basicConfig(
+            level=logging.DEBUG if verbose > 0 else logging.INFO, 
+            format='[%(asctime)s] %(levelname)s - %(message)s',
+            handlers=handlers
+        )
+
         return returnValue
 
-    @staticmethod
-    def ShowVersion(Version):
-        if len(sys.argv) == 2 and sys.argv[1] == 'version':
-            print "LibVirt Wake-On-Lan Version " + Version
-            sys.exit(0)
-        return False
