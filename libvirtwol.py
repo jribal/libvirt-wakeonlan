@@ -63,9 +63,9 @@ class LibVirtWakeOnLan:
                     if foundmac == mac:
                         logging.debug("Found domain %s for MAC %s", domainName, mac)
                         return domain
-            metadata = xml.documentElement.getElementByTagName("metadata")
+            metadata = xml.documentElement.getElementsByTagName("metadata")[0]
             if metadata is not None:
-                hints = metadata.getElementsByTagNameNS('http://conradkreyling.com/xmlns/libvirtwakeonlan/1.0', "mac")
+                hints = metadata.getElementsByTagName('wol:mac')
                 for hint in hints:
                     foundmac = hint.getAttribute("address")
                     if foundmac == mac:
