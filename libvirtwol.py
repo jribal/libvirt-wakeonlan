@@ -33,7 +33,9 @@ class LibVirtWakeOnLan:
     @staticmethod
     def TryWakeDomain(conn, domain):
         state = domain.state()[0]
-        if state == libvirt.VIR_DOMAIN_PAUSED:
+        if state == libvirt.VIR_DOMAIN_RUNNING:
+            logging.debug('Domain %s already awake; nothing to do!', domain.name())
+        elif state == libvirt.VIR_DOMAIN_PAUSED:
             logging.info('Resuming %s from pause', domain.name())
             domain.resume()
         elif state == libvirt.VIR_DOMAIN_SHUTOFF:
@@ -50,9 +52,9 @@ class LibVirtWakeOnLan:
 
     @staticmethod
     def GetDomainByMACAddress(conn, mac):
-        domains = conn.listDefinedDomains()
-        for domainName in domains:
-            domain = conn.lookupByName(domainName)
+        domains = conn.listAllDomains()
+        logging.debug("Found %d domains", len(domains))
+        for domain in domains:
             # TODO - replace with api calls to fetch network interfaces
             xml = minidom.parseString(domain.XMLDesc(0))
             devices = xml.documentElement.getElementsByTagName("devices")
@@ -61,7 +63,7 @@ class LibVirtWakeOnLan:
                     macadd = interface.getElementsByTagName("mac")
                     foundmac = macadd[0].getAttribute("address")
                     if foundmac == mac:
-                        logging.debug("Found domain %s for MAC %s", domainName, mac)
+                        logging.debug("Found domain %s for MAC %s", domain.name(), mac)
                         return domain
             metadata = xml.documentElement.getElementsByTagName("metadata")[0]
             if metadata is not None:
@@ -69,9 +71,8 @@ class LibVirtWakeOnLan:
                 for hint in hints:
                     foundmac = hint.getAttribute("address")
                     if foundmac == mac:
-                        logging.debug("Found domain %s for hinted MAC %s", domainName, mac)
+                        logging.debug("Found domain %s for hinted MAC %s", domain.name(), mac)
                         return domain
-
         logging.debug("Didn't find a VM with MAC address %s", mac)
         return None
 
@@ -103,8 +104,8 @@ class LibVirtWakeOnLan:
     def GetMACAddress(bytes):
         size = len(bytes)
         # added fix for ether proto 0x0842
-        logging.debug('Received %d bytes:', size)
-        logging.debug(binascii.hexlify(bytes))
+        #logging.debug('Received %d bytes:', size)
+        #logging.debug(binascii.hexlify(bytes))
         counted = 0
         macpart = 0
         maccounted = 0
