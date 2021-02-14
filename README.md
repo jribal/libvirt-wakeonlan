@@ -18,13 +18,18 @@ SOURCE INSTALL
 
 Clone the git repo:
 
+```
 git clone git://github.com/simoncadman/libvirt-wakeonlan.git
 
 cd libvirt-wakeonlan/
 ./configure
 make install
+```
+Run the daemon
 
-Run the daemon ( eg. service libvirt-wakeonlan start ).
+```
+systemctl start libvirt-wakeonlan
+```
 
 CONFIGURATION
 =============
