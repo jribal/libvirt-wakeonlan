@@ -1,12 +1,5 @@
-#! /bin/sh
-"true" '''\'
-if command -v python2 > /dev/null; then
-  exec python2 "$0" "$@"
-else
-  exec python "$0" "$@"
-fi
-exit $?
-'''
+#!/usr/bin/python
+
 #    LibVirt Wake On Lan
 #    Copyright (C) 2012 Simon Cadman
 #
@@ -23,6 +16,7 @@ exit $?
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    dmacias - added fixes for ether proto 0x0842
+
 import pcap
 import sys
 import socket
@@ -36,28 +30,43 @@ from xml.dom import minidom
 class LibVirtWakeOnLan:
 
     @staticmethod
+    def GetMACFromXML(domain):
+        xml = minidom.parseString(domain.XMLDesc(0))
+        devices = xml.documentElement.getElementsByTagName("devices")
+        for device in devices:
+            for interface in device.getElementsByTagName("interface"):
+                macadd = interface.getElementsByTagName("mac")
+                return macadd[0].getAttribute("address")
+        return None
+
+
+    @staticmethod
     def StartServerByMACAddress(mac):
         conn = libvirt.open(None)
         if conn is None:
             logging.error('Failed to open connection to the hypervisor')
             sys.exit(1)
 
-        domains = conn.listDefinedDomains()
-        for domainName in domains:
+        # Start inactive
+        domainNames = conn.listDefinedDomains()
+        for domainName in domainNames:
+            logging.info("Looping through inactive domains %s", domainName)
             domain = conn.lookupByName(domainName)
-            params = []
-            # TODO - replace with api calls to fetch network interfaces
-            xml = minidom.parseString(domain.XMLDesc(0))
-            devices = xml.documentElement.getElementsByTagName("devices")
-            for device in devices:
-                for interface in device.getElementsByTagName("interface"):
-                    macadd = interface.getElementsByTagName("mac")
-                    foundmac = macadd[0].getAttribute("address")
-                    if foundmac == mac:
-                        logging.info("Waking up %s", domainName)
-                        domain.create()
-                        return True
-        logging.info("Didn't find a VM with MAC address %s", mac)
+            if mac == LibVirtWakeOnLan.GetMACFromXML(domain):
+                logging.info("Waking up %s", domainName)
+                domain.create()
+                return True
+
+        # Resume suspended
+        domains = conn.listAllDomains(libvirt.VIR_CONNECT_LIST_DOMAINS_PAUSED)
+        for domain in domains:
+            logging.info("Looping through suspended domains %s", domain.name())
+            if mac == LibVirtWakeOnLan.GetMACFromXML(domain):
+                logging.info("Resuming %s", domain.name())
+                domain.resume()
+                return True
+
+        logging.info("Didn't find a VM (inactive/suspended) with MAC address %s", mac)
         return False
 
     @staticmethod
