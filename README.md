@@ -5,14 +5,6 @@ libvirt-wakeonlan is a daemon which listens for wake on lan packets and starts l
 INSTALLATION
 ============
 
-RPM/DEB/Ebuild INSTALL ( Recommended )
-================================
-
-Download and install the package for your distro from http://lvwol.niftiestsoftware.com ( coming soon ).
-
-Refer to your own specific distribution instructions for how to install the package. Once installed, the daemon is installed as a standard service, 
-refer to your distribution information on how to start and stop services, and ( if desired ) how to have it run automatically on boot.
-
 SOURCE INSTALL
 ==============
 
