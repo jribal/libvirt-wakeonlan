@@ -2,6 +2,8 @@ INTRODUCTION
 ============
 libvirt-wakeonlan is a daemon which listens for wake on lan packets and starts libvirt based virtual machines. 
 
+This fork support more libvirt states and is tested with moonlight-streaming wakeonlan option
+
 INSTALLATION
 ============
 
@@ -11,7 +13,7 @@ SOURCE INSTALL
 Clone the git repo:
 
 ```
-git clone git://github.com/simoncadman/libvirt-wakeonlan.git
+git clone git://github.com/jribal/libvirt-wakeonlan.git
 
 cd libvirt-wakeonlan/
 ./configure

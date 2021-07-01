@@ -28,7 +28,6 @@ import pcapy
 
 from pypacker.layer12.ethernet import Ethernet
 
-
 class LibVirtWakeOnLan:
 
     @staticmethod
@@ -43,87 +42,50 @@ class LibVirtWakeOnLan:
 
     @staticmethod
     def StartServerByMACAddress(mac):
-        conn = libvirt.open(None)
+        conn = libvirt.open("qemu:///system")
         if conn is None:
             logging.error('Failed to open connection to the hypervisor')
             sys.exit(1)
 
-        # Start inactive
-        domainNames = conn.listDefinedDomains()
-        for domainName in domainNames:
-            logging.info("Looping through inactive domains %s", domainName)
-            domain = conn.lookupByName(domainName)
-            if mac == LibVirtWakeOnLan.GetMACFromXML(domain):
-                logging.info("Waking up %s", domainName)
-                domain.create()
-                return True
-
-        # Resume suspended
-        domains = conn.listAllDomains(libvirt.VIR_CONNECT_LIST_DOMAINS_PAUSED)
+        domains = conn.listAllDomains(0)
         for domain in domains:
-            logging.info("Looping through suspended domains %s", domain.name())
             if mac == LibVirtWakeOnLan.GetMACFromXML(domain):
+              logging.info("mac match: %s", domain.name())
+              state, reason = domain.state()
+              if state == libvirt.VIR_DOMAIN_PMSUSPENDED:
+                logging.info("Resuming from PM %s", domain.name())
+                domain.pMWakeup()
+                return True
+              elif state == libvirt.VIR_CONNECT_LIST_DOMAINS_PAUSED:
                 logging.info("Resuming %s", domain.name())
                 domain.resume()
+                return True
+              elif state == libvirt.VIR_DOMAIN_SHUTDOWN or state == libvirt.VIR_DOMAIN_SHUTOFF or state == libvirt.VIR_DOMAIN_CRASHED:
+                logging.info("Starting %s", domain.name())
+                domain.create()
                 return True
 
         logging.info("Didn't find a VM (inactive/suspended) with MAC address %s", mac)
         return False
 
     @staticmethod
-    def GetMACAddress(s):
-        # added fix for ether proto 0x0842
-        s=repr(s)[2:-1]
-        size = len(s)
-        bytes = map(lambda x: '%.2x' % x, map(ord, s))
-        counted = 0
-        macpart = 0
-        maccounted = 0
-        macaddress = None
-        newmac = ""
-
-        for byte in bytes:
-            if counted < 6:
-                # find 6 repetitions of 255 and added fix for ether proto 0x0842
-                if byte == "ff" or size < 110:
-                    counted += 1
-            else:
-                # find 16 repititions of 48 bit mac
-                macpart += 1
-                if newmac != "":
-                    newmac += ":"
-
-                newmac += byte
-
-                if macpart == 6 and macaddress is None:
-                    macaddress = newmac
-
-                if macpart == 6:
-                    # if macaddress != newmac:
-                    # return None
-                    newmac = ""
-                    macpart = 0
-                    maccounted += 1
-
-        if counted > 5 and maccounted > 5:
-            return macaddress
-
-    @staticmethod
     def DecodeIPPacket(s)->Ethernet:
         if len(s) < 20:
             return None
-        print("len confirmed")
         decoded=Ethernet(s)
         return decoded
 
     @staticmethod
     def InspectIPPacket(pkthdr, data:str):
-        print(data)
+        #print(data)
         if not data:
             return
-        print("decoding")
         decoded = LibVirtWakeOnLan.DecodeIPPacket(data)
-        macaddress = LibVirtWakeOnLan.GetMACAddress(decoded.header_bytes)
+        #logging.info(decoded)
+        #print(decoded)
+        macaddress = "%02x:%02x:%02x:%02x:%02x:%02x" % struct.unpack("BBBBBB", decoded.bin().strip()[-6:])
+        logging.info(macaddress)
+        #print(macaddress)
         if not macaddress:
             return
         return LibVirtWakeOnLan.StartServerByMACAddress(macaddress)
@@ -133,8 +95,11 @@ if __name__ == '__main__':
     from lvwolutils import Utils
 
     Utils.SetupLogging()
-    data = b'\xff\xff\xff\xff\xff\xff\x94\xc6\x91\xa32\x7f\x08\x00E\x00\x00\x82Vo@\x00@\x117\xce\xac\x10\x00\x1e\xff\xff\xff\xff\x81\xb1\x00\t\x00n\xde\x10\xff\xff\xff\xff\xff\xff@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec'
-    LibVirtWakeOnLan.InspectIPPacket(0,data)
+
+    # data = b'\xff\xff\xff\xff\xff\xff\x94\xc6\x91\xa32\x7f\x08\x00E\x00\x00\x82Vo@\x00@\x117\xce\xac\x10\x00\x1e\xff\xff\xff\xff\x81\xb1\x00\t\x00n\xde\x10\xff\xff\xff\xff\xff\xff@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec@\x8d\\\xb7\xf1\xec'
+    #LibVirtWakeOnLan.InspectIPPacket(0,data)
+    #sys.exit(0)
+
     # line below is replaced on commit
     LVWOLVersion = "20140814 231218"
     Utils.ShowVersion(LVWOLVersion)
