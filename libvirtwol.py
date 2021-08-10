@@ -56,7 +56,7 @@ class LibVirtWakeOnLan:
                 logging.info("Resuming from PM %s", domain.name())
                 domain.pMWakeup()
                 return True
-              elif state == libvirt.VIR_CONNECT_LIST_DOMAINS_PAUSED:
+              elif state == libvirt.VIR_DOMAIN_PAUSED:
                 logging.info("Resuming %s", domain.name())
                 domain.resume()
                 return True
